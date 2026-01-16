@@ -57,7 +57,7 @@ final class FeedAggregator {
         articles.sort { $0.publishedAt > $1.publishedAt }
 
         // Filter for positivity
-        let filteredArticles = await positivityFilter.filter(articles)
+        let filteredArticles = positivityFilter.filter(articles)
 
         return filteredArticles
     }
@@ -78,7 +78,7 @@ final class FeedAggregator {
                     pubDate: item.pubDate,
                     sourceName: source.name,
                     sourceIcon: source.icon,
-                    defaultCategoryRaw: source.defaultCategory.rawValue
+                    defaultCategoryRaw: source.defaultCategoryRaw
                 )
             }
 

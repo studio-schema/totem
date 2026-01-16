@@ -6,18 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ArticleDetailView: View {
-    let article: Article
+    @Bindable var article: Article
     @State private var scrollOffset: CGFloat = 0
-    @State private var isBookmarked: Bool
     @State private var showSafari = false
     @Environment(\.dismiss) private var dismiss
-
-    init(article: Article) {
-        self.article = article
-        _isBookmarked = State(initialValue: article.isBookmarked)
-    }
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         GeometryReader { geometry in
@@ -162,10 +158,10 @@ struct ArticleDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 16) {
                     Button {
-                        isBookmarked.toggle()
-                        // In a real app, persist this
+                        article.isBookmarked.toggle()
+                        try? modelContext.save()
                     } label: {
-                        Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
+                        Image(systemName: article.isBookmarked ? "bookmark.fill" : "bookmark")
                     }
 
                     ShareLink(

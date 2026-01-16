@@ -40,29 +40,25 @@ final class FeedViewModel {
         isLoading = true
         error = nil
 
-        do {
-            let freshArticles = await feedAggregator.fetchAllFeeds()
+        // Fetch fresh articles from RSS feeds
+        let freshArticles = await feedAggregator.fetchAllFeeds()
 
-            if !freshArticles.isEmpty {
-                // Filter by category if not "For You"
-                let filteredArticles: [Article]
-                if selectedCategory == .forYou {
-                    filteredArticles = freshArticles
-                } else {
-                    filteredArticles = freshArticles.filter { $0.category == selectedCategory }
-                }
+        if !freshArticles.isEmpty {
+            // Persist to SwiftData
+            await persistArticles(freshArticles)
 
-                articles = filteredArticles
-                featuredArticle = filteredArticles.first
-            } else {
+            // Update display
+            updateDisplayedArticles(from: freshArticles)
+        } else {
+            // Try to load from cache if no fresh articles
+            await loadCachedArticles()
+
+            if articles.isEmpty {
                 error = "No articles found. Please check your connection and try again."
             }
-
-            hasLoadedOnce = true
-        } catch {
-            self.error = error.localizedDescription
         }
 
+        hasLoadedOnce = true
         isLoading = false
     }
 
@@ -73,15 +69,8 @@ final class FeedViewModel {
         let freshArticles = await feedAggregator.fetchAllFeeds()
 
         if !freshArticles.isEmpty {
-            let filteredArticles: [Article]
-            if selectedCategory == .forYou {
-                filteredArticles = freshArticles
-            } else {
-                filteredArticles = freshArticles.filter { $0.category == selectedCategory }
-            }
-
-            articles = filteredArticles
-            featuredArticle = filteredArticles.first
+            await persistArticles(freshArticles)
+            updateDisplayedArticles(from: freshArticles)
             error = nil
         }
 
@@ -94,40 +83,54 @@ final class FeedViewModel {
 
         selectedCategory = category
 
-        // If we have articles, filter them immediately
-        if !articles.isEmpty {
-            // Re-fetch to get fresh articles for the category
-            await refresh()
-        } else {
-            // No articles yet, trigger a full load
-            await loadFeed()
+        // Re-filter displayed articles
+        if let context = modelContext {
+            let descriptor = FetchDescriptor<Article>(
+                sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]
+            )
+
+            do {
+                let allArticles = try context.fetch(descriptor)
+                updateDisplayedArticles(from: allArticles)
+            } catch {
+                print("Failed to filter articles: \(error)")
+            }
         }
     }
 
     @MainActor
     func toggleBookmark(for article: Article) {
         article.isBookmarked.toggle()
-        saveChanges()
+        saveContext()
     }
 
     // MARK: - Private Methods
+
+    @MainActor
+    private func updateDisplayedArticles(from allArticles: [Article]) {
+        let filteredArticles: [Article]
+        if selectedCategory == .forYou {
+            filteredArticles = allArticles
+        } else {
+            filteredArticles = allArticles.filter { $0.category == selectedCategory }
+        }
+
+        articles = filteredArticles
+        featuredArticle = filteredArticles.first
+    }
 
     @MainActor
     private func loadCachedArticles() async {
         guard let context = modelContext else { return }
 
         let descriptor = FetchDescriptor<Article>(
-            predicate: #Predicate<Article> { article in
-                article.isVerifiedPositive == true
-            },
             sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]
         )
 
         do {
             let cached = try context.fetch(descriptor)
             if !cached.isEmpty {
-                articles = cached
-                featuredArticle = cached.first
+                updateDisplayedArticles(from: cached)
             }
         } catch {
             print("Failed to load cached articles: \(error)")
@@ -139,6 +142,7 @@ final class FeedViewModel {
         guard let context = modelContext else { return }
 
         for article in newArticles {
+            // Check if article already exists
             let id = article.id
             let descriptor = FetchDescriptor<Article>(
                 predicate: #Predicate<Article> { $0.id == id }
@@ -154,10 +158,10 @@ final class FeedViewModel {
             }
         }
 
-        saveChanges()
+        saveContext()
     }
 
-    private func saveChanges() {
+    private func saveContext() {
         guard let context = modelContext else { return }
         do {
             try context.save()

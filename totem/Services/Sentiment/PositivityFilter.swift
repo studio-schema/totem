@@ -7,42 +7,38 @@
 
 import Foundation
 
-actor PositivityFilter {
+@MainActor
+final class PositivityFilter {
     static let shared = PositivityFilter()
 
-    // Keywords that indicate negative content - block these
+    // Keywords that indicate strongly negative content - block these
     private let blockedKeywords: Set<String> = [
-        "death", "died", "killed", "murder", "tragedy", "disaster",
-        "war", "attack", "violence", "shooting", "crash", "fatal",
-        "scandal", "fraud", "corruption", "abuse", "crime", "criminal",
-        "terrorist", "terrorism", "explosion", "bomb", "victim",
-        "devastation", "catastrophe", "crisis", "emergency", "pandemic",
-        "suicide", "overdose", "assault", "robbery", "theft"
+        "murder", "killed", "shooting", "terrorist", "terrorism",
+        "massacre", "slaughter", "execution", "homicide"
     ]
 
-    // Keywords that strongly indicate positive content
+    // Keywords that strongly indicate positive content - auto-approve
     private let positiveKeywords: Set<String> = [
         "success", "breakthrough", "discovery", "celebration",
         "achievement", "hero", "saved", "rescue", "innovation",
         "kindness", "charity", "volunteer", "hope", "inspiring",
         "uplifting", "heartwarming", "wholesome", "joy", "happiness",
         "recovery", "healing", "triumph", "overcome", "remarkable",
-        "generous", "compassion", "miracle", "wonderful", "amazing"
+        "generous", "compassion", "miracle", "wonderful", "amazing",
+        "sustainable", "renewable", "conservation", "wellness",
+        "mindful", "creative", "artistic", "community", "together"
     ]
-
-    private let sentimentAnalyzer = SentimentAnalyzer.shared
 
     private init() {}
 
-    /// Filter articles to only include verified positive content
-    func filter(_ articles: [Article]) async -> [Article] {
+    /// Filter articles - more permissive since sources are curated positive news sites
+    func filter(_ articles: [Article]) -> [Article] {
         var filtered: [Article] = []
 
         for article in articles {
-            if await isPositive(article) {
-                var verifiedArticle = article
-                verifiedArticle.isVerifiedPositive = true
-                filtered.append(verifiedArticle)
+            if isPositive(article) {
+                article.isVerifiedPositive = true
+                filtered.append(article)
             }
         }
 
@@ -50,38 +46,32 @@ actor PositivityFilter {
     }
 
     /// Check if an article passes positivity requirements
-    func isPositive(_ article: Article) async -> Bool {
+    /// Since we're sourcing from positive news sites, we're more lenient
+    func isPositive(_ article: Article) -> Bool {
         let text = "\(article.title) \(article.articleDescription ?? "")"
         let lowercasedText = text.lowercased()
 
-        // Step 1: Check for blocked keywords
+        // Step 1: Block only strongly negative content
         for keyword in blockedKeywords {
             if lowercasedText.contains(keyword) {
                 return false
             }
         }
 
-        // Step 2: Check sentiment score
-        // Already calculated during parsing, use it
-        if article.sentimentScore < -0.3 {
-            return false
-        }
-
-        // Step 3: Boost if contains positive keywords
-        var positiveBoost = 0
+        // Step 2: Auto-approve if contains positive keywords
         for keyword in positiveKeywords {
             if lowercasedText.contains(keyword) {
-                positiveBoost += 1
+                return true
             }
         }
 
-        // If has positive keywords or neutral/positive sentiment, approve
-        return positiveBoost > 0 || article.sentimentScore >= 0
+        // Step 3: Allow if sentiment is not strongly negative
+        // Since sources are curated, be more permissive
+        return article.sentimentScore >= -0.5
     }
 
     /// Get positivity score for display (0-100)
     func getPositivityScore(_ article: Article) -> Int {
-        // Convert -1 to 1 range to 0 to 100
         let normalizedScore = (article.sentimentScore + 1) / 2
         return Int(normalizedScore * 100)
     }

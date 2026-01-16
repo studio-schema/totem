@@ -256,6 +256,22 @@ git push origin main
 
 ## Changelog
 
+### 2026-01-16 (Build 5)
+- ✅ BUILD SUCCEEDED - FULL FUNCTIONALITY
+- Expanded to 23 RSS sources covering all categories:
+  - Good News: Good News Network, Positive News, Reasons to be Cheerful, The Optimist Daily, Sunny Skyz, Daily Good
+  - Inspiring Stories: Upworthy, Good Good Good, Inspire More
+  - Science & Innovation: Science Daily (Health & Tech), Phys.org, MIT News
+  - Environment: Treehugger, EcoWatch, The Guardian Environment
+  - Health & Wellness: Mindful, Well+Good, Tiny Buddha
+  - Acts of Kindness: Random Acts of Kindness
+  - Arts & Culture: Colossal, Brain Pickings, Open Culture
+- Relaxed positivity filter for more content
+- Fixed bookmark persistence (articles saved to SwiftData)
+- Bookmarks now work correctly across app sessions
+- Search fully functional (searches title, description, source, category)
+- Source management displayed in Settings
+
 ### 2026-01-16 (Build 4)
 - ✅ BUILD SUCCEEDED
 - Added in-app Safari browser (SFSafariViewController)
