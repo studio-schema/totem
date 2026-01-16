@@ -18,12 +18,15 @@ final class FeedViewModel {
     var isLoading = false
     var isRefreshing = false
     var error: String?
+    var hasLoadedOnce = false
 
     // MARK: - Private
     private let feedAggregator = FeedAggregator.shared
     private var modelContext: ModelContext?
 
     // MARK: - Initialization
+    init() {}
+
     func configure(with modelContext: ModelContext) {
         self.modelContext = modelContext
     }
@@ -38,27 +41,24 @@ final class FeedViewModel {
         error = nil
 
         do {
-            // First, load cached articles from SwiftData
-            await loadCachedArticles()
-
-            // Then fetch fresh articles from RSS feeds
             let freshArticles = await feedAggregator.fetchAllFeeds()
 
-            // Filter by category if not "For You"
-            let filteredArticles: [Article]
-            if selectedCategory == .forYou {
-                filteredArticles = freshArticles
+            if !freshArticles.isEmpty {
+                // Filter by category if not "For You"
+                let filteredArticles: [Article]
+                if selectedCategory == .forYou {
+                    filteredArticles = freshArticles
+                } else {
+                    filteredArticles = freshArticles.filter { $0.category == selectedCategory }
+                }
+
+                articles = filteredArticles
+                featuredArticle = filteredArticles.first
             } else {
-                filteredArticles = freshArticles.filter { $0.category == selectedCategory }
+                error = "No articles found. Please check your connection and try again."
             }
 
-            // Update state
-            articles = filteredArticles
-            featuredArticle = filteredArticles.first
-
-            // Persist to SwiftData
-            await persistArticles(freshArticles)
-
+            hasLoadedOnce = true
         } catch {
             self.error = error.localizedDescription
         }
@@ -69,7 +69,22 @@ final class FeedViewModel {
     @MainActor
     func refresh() async {
         isRefreshing = true
-        await loadFeed()
+
+        let freshArticles = await feedAggregator.fetchAllFeeds()
+
+        if !freshArticles.isEmpty {
+            let filteredArticles: [Article]
+            if selectedCategory == .forYou {
+                filteredArticles = freshArticles
+            } else {
+                filteredArticles = freshArticles.filter { $0.category == selectedCategory }
+            }
+
+            articles = filteredArticles
+            featuredArticle = filteredArticles.first
+            error = nil
+        }
+
         isRefreshing = false
     }
 
@@ -79,14 +94,13 @@ final class FeedViewModel {
 
         selectedCategory = category
 
-        if category == .forYou {
-            // Show all articles
-            await loadFeed()
+        // If we have articles, filter them immediately
+        if !articles.isEmpty {
+            // Re-fetch to get fresh articles for the category
+            await refresh()
         } else {
-            // Filter current articles by category
-            let allArticles = await feedAggregator.fetchAllFeeds()
-            articles = allArticles.filter { $0.category == category }
-            featuredArticle = articles.first
+            // No articles yet, trigger a full load
+            await loadFeed()
         }
     }
 
@@ -111,7 +125,7 @@ final class FeedViewModel {
 
         do {
             let cached = try context.fetch(descriptor)
-            if !cached.isEmpty && articles.isEmpty {
+            if !cached.isEmpty {
                 articles = cached
                 featuredArticle = cached.first
             }
@@ -125,7 +139,6 @@ final class FeedViewModel {
         guard let context = modelContext else { return }
 
         for article in newArticles {
-            // Check if article already exists
             let id = article.id
             let descriptor = FetchDescriptor<Article>(
                 predicate: #Predicate<Article> { $0.id == id }
@@ -158,63 +171,52 @@ final class FeedViewModel {
 extension FeedViewModel {
     static var preview: FeedViewModel {
         let vm = FeedViewModel()
-        vm.articles = Article.previewArticles
-        vm.featuredArticle = Article.previewArticles.first
         return vm
     }
 }
 
-// MARK: - Preview Data
+// MARK: - Preview Data (only used for SwiftUI Previews)
 extension Article {
     static var previewArticles: [Article] {
         [
             Article(
-                id: "1",
-                title: "Scientists Discover New Renewable Energy Source That Could Power Millions",
+                id: "preview-1",
+                title: "Scientists Discover New Renewable Energy Source That Could Power Millions of Homes",
                 articleDescription: "A breakthrough in solar technology could revolutionize how we generate clean energy, offering hope for a sustainable future.",
+                content: "Researchers at Stanford University have developed a revolutionary new type of solar cell...",
                 sourceName: "Good News Network",
                 sourceIcon: "sun.max.fill",
-                imageURL: "https://picsum.photos/800/600",
-                articleURL: "https://example.com/1",
+                imageURL: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800",
+                articleURL: "https://goodnewsnetwork.org",
                 publishedAt: Date().addingTimeInterval(-3600),
                 category: .scienceInnovation,
-                sentimentScore: 0.8
-            ),
-            Article(
-                id: "2",
-                title: "Community Raises $1 Million to Save Local Animal Shelter",
-                articleDescription: "In an incredible show of compassion, residents came together to ensure the shelter could continue its life-saving work.",
-                sourceName: "Positive News",
-                sourceIcon: "heart.fill",
-                imageURL: "https://picsum.photos/800/601",
-                articleURL: "https://example.com/2",
-                publishedAt: Date().addingTimeInterval(-7200),
-                category: .actsOfKindness,
-                sentimentScore: 0.9
-            ),
-            Article(
-                id: "3",
-                title: "Teen Inventor Creates Device to Help Clean Ocean Plastic",
-                articleDescription: "A 17-year-old's innovative solution is already removing tons of plastic from our oceans.",
-                sourceName: "Upworthy",
-                sourceIcon: "leaf.fill",
-                imageURL: "https://picsum.photos/800/602",
-                articleURL: "https://example.com/3",
-                publishedAt: Date().addingTimeInterval(-10800),
-                category: .environment,
                 sentimentScore: 0.85
             ),
             Article(
-                id: "4",
-                title: "First-Generation College Student Wins Full Scholarship to Dream School",
-                articleDescription: "Against all odds, Maria overcame incredible challenges to achieve her educational dreams.",
-                sourceName: "Good Good Good",
-                sourceIcon: "star.fill",
-                imageURL: "https://picsum.photos/800/603",
-                articleURL: "https://example.com/4",
-                publishedAt: Date().addingTimeInterval(-14400),
-                category: .inspiringStories,
-                sentimentScore: 0.95
+                id: "preview-2",
+                title: "Community Raises $2 Million in 48 Hours to Save Local Animal Shelter",
+                articleDescription: "In an incredible show of compassion, residents came together to ensure the shelter could continue its life-saving work.",
+                content: "When word spread that the Sunshine Animal Shelter was facing permanent closure...",
+                sourceName: "Positive News",
+                sourceIcon: "heart.fill",
+                imageURL: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800",
+                articleURL: "https://positive.news",
+                publishedAt: Date().addingTimeInterval(-7200),
+                category: .actsOfKindness,
+                sentimentScore: 0.92
+            ),
+            Article(
+                id: "preview-3",
+                title: "17-Year-Old Inventor Creates Device That Removes 90% of Microplastics from Ocean Water",
+                articleDescription: "High school student's science fair project is now being scaled up for deployment in harbors around the world.",
+                content: "What started as a high school science fair project has become one of the most promising solutions...",
+                sourceName: "Upworthy",
+                sourceIcon: "leaf.fill",
+                imageURL: "https://images.unsplash.com/photo-1484291470158-b8f8d608850d?w=800",
+                articleURL: "https://upworthy.com",
+                publishedAt: Date().addingTimeInterval(-10800),
+                category: .environment,
+                sentimentScore: 0.88
             )
         ]
     }

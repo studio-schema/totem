@@ -7,83 +7,117 @@
 
 import Foundation
 
-actor FeedAggregator {
+// Simple data struct for transferring RSS data (Sendable)
+struct RSSArticleData: Sendable {
+    let title: String
+    let description: String
+    let link: String
+    let imageURL: String?
+    let author: String?
+    let content: String?
+    let pubDate: String
+    let sourceName: String
+    let sourceIcon: String
+    let defaultCategoryRaw: String
+}
+
+@MainActor
+final class FeedAggregator {
     static let shared = FeedAggregator()
 
-    private let parser = RSSParser()
     private let sentimentAnalyzer = SentimentAnalyzer.shared
     private let positivityFilter = PositivityFilter.shared
 
     private init() {}
 
     func fetchAllFeeds(sources: [NewsSource] = NewsSource.defaultSources) async -> [Article] {
-        var allArticles: [Article] = []
+        var allArticleData: [RSSArticleData] = []
 
-        await withTaskGroup(of: [Article].self) { group in
+        // Fetch from all sources concurrently
+        await withTaskGroup(of: [RSSArticleData].self) { group in
             for source in sources where source.isEnabled {
-                group.addTask {
-                    await self.fetchFeed(from: source)
+                group.addTask { [source] in
+                    await self.fetchFeedData(from: source)
                 }
             }
 
-            for await articles in group {
-                allArticles.append(contentsOf: articles)
+            for await data in group {
+                allArticleData.append(contentsOf: data)
             }
         }
 
+        // Convert to Articles on main actor
+        var articles: [Article] = []
+        for data in allArticleData {
+            let article = await convertToArticle(data: data)
+            articles.append(article)
+        }
+
         // Sort by date, newest first
-        allArticles.sort { $0.publishedAt > $1.publishedAt }
+        articles.sort { $0.publishedAt > $1.publishedAt }
 
         // Filter for positivity
-        let filteredArticles = await positivityFilter.filter(allArticles)
+        let filteredArticles = await positivityFilter.filter(articles)
 
         return filteredArticles
     }
 
-    func fetchFeed(from source: NewsSource) async -> [Article] {
+    nonisolated func fetchFeedData(from source: NewsSource) async -> [RSSArticleData] {
         do {
+            let parser = RSSParser()
             let items = try await parser.fetchAndParse(from: source.feedURL)
 
-            var articles: [Article] = []
-
-            for item in items {
-                let article = await convertToArticle(item: item, source: source)
-                articles.append(article)
+            let data = items.map { item in
+                RSSArticleData(
+                    title: item.title,
+                    description: item.description,
+                    link: item.link,
+                    imageURL: item.imageURL,
+                    author: item.author,
+                    content: item.content,
+                    pubDate: item.pubDate,
+                    sourceName: source.name,
+                    sourceIcon: source.icon,
+                    defaultCategoryRaw: source.defaultCategory.rawValue
+                )
             }
 
-            return articles
+            print("Fetched \(data.count) articles from \(source.name)")
+            return data
         } catch {
             print("Failed to fetch feed from \(source.name): \(error.localizedDescription)")
             return []
         }
     }
 
-    private func convertToArticle(item: RSSParser.RSSItem, source: NewsSource) async -> Article {
+    private func convertToArticle(data: RSSArticleData) async -> Article {
+        let defaultCategory = ArticleCategory(rawValue: data.defaultCategoryRaw) ?? .goodNews
+
         // Determine category based on content
-        let category = await determineCategory(
-            title: item.title,
-            description: item.description,
-            defaultCategory: source.defaultCategory
+        let category = determineCategory(
+            title: data.title,
+            description: data.description,
+            defaultCategory: defaultCategory
         )
 
         // Calculate sentiment score
         let sentimentScore = await sentimentAnalyzer.analyze(
-            text: "\(item.title). \(item.description)"
+            text: "\(data.title). \(data.description)"
         )
 
         let article = Article(
-            id: generateID(from: item.link),
-            title: item.title,
-            articleDescription: item.description,
-            content: item.content,
-            author: item.author,
-            sourceName: source.name,
-            sourceIcon: source.icon,
-            imageURL: item.imageURL,
-            articleURL: item.link,
-            publishedAt: parseDate(item.pubDate),
+            id: generateID(from: data.link),
+            title: data.title,
+            articleDescription: data.description,
+            content: data.content,
+            author: data.author,
+            sourceName: data.sourceName,
+            sourceIcon: data.sourceIcon,
+            imageURL: data.imageURL,
+            articleURL: data.link,
+            publishedAt: parseDate(data.pubDate),
             category: category,
-            keywords: extractKeywords(from: item.title + " " + item.description),
+            keywords: extractKeywords(from: data.title + " " + data.description),
             sentimentScore: sentimentScore
         )
 
@@ -96,7 +130,7 @@ actor FeedAggregator {
         title: String,
         description: String,
         defaultCategory: ArticleCategory
-    ) async -> ArticleCategory {
+    ) -> ArticleCategory {
         let text = (title + " " + description).lowercased()
 
         // Check each category's keywords

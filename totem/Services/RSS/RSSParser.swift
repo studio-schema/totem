@@ -7,7 +7,7 @@
 
 import Foundation
 
-actor RSSParser: NSObject {
+final class RSSParser: NSObject {
     private var currentElement = ""
     private var currentTitle = ""
     private var currentDescription = ""
@@ -30,7 +30,7 @@ actor RSSParser: NSObject {
         let content: String?
     }
 
-    func parse(data: Data) async throws -> [RSSItem] {
+    func parse(data: Data) throws -> [RSSItem] {
         items = []
         resetCurrentItem()
 
@@ -57,7 +57,7 @@ actor RSSParser: NSObject {
             throw RSSError.networkError
         }
 
-        return try await parse(data: data)
+        return try parse(data: data)
     }
 
     private func resetCurrentItem() {
@@ -69,23 +69,55 @@ actor RSSParser: NSObject {
         currentAuthor = ""
         currentContent = ""
     }
+
+    private func cleanHTML(_ html: String) -> String {
+        var clean = html.replacingOccurrences(
+            of: "<[^>]+>",
+            with: "",
+            options: .regularExpression
+        )
+        clean = clean.replacingOccurrences(of: "&amp;", with: "&")
+        clean = clean.replacingOccurrences(of: "&lt;", with: "<")
+        clean = clean.replacingOccurrences(of: "&gt;", with: ">")
+        clean = clean.replacingOccurrences(of: "&quot;", with: "\"")
+        clean = clean.replacingOccurrences(of: "&#39;", with: "'")
+        clean = clean.replacingOccurrences(of: "&nbsp;", with: " ")
+        return clean.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func extractImageFromContent() -> String? {
+        let patterns = [
+            "src=\"([^\"]+\\.(jpg|jpeg|png|gif|webp)[^\"]*)\"",
+            "src='([^']+\\.(jpg|jpeg|png|gif|webp)[^']*)'",
+        ]
+
+        let textToSearch = currentContent.isEmpty ? currentDescription : currentContent
+
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               let match = regex.firstMatch(
+                   in: textToSearch,
+                   options: [],
+                   range: NSRange(textToSearch.startIndex..., in: textToSearch)
+               ),
+               let range = Range(match.range(at: 1), in: textToSearch) {
+                return String(textToSearch[range])
+            }
+        }
+
+        return nil
+    }
 }
 
 // MARK: - XMLParserDelegate
 extension RSSParser: XMLParserDelegate {
-    nonisolated func parser(
+    func parser(
         _ parser: XMLParser,
         didStartElement elementName: String,
         namespaceURI: String?,
         qualifiedName qName: String?,
         attributes attributeDict: [String: String] = [:]
     ) {
-        Task { @MainActor in
-            await handleStartElement(elementName, attributes: attributeDict)
-        }
-    }
-
-    private func handleStartElement(_ elementName: String, attributes: [String: String]) {
         currentElement = elementName
 
         if elementName == "item" || elementName == "entry" {
@@ -96,25 +128,19 @@ extension RSSParser: XMLParserDelegate {
         // Handle media:content or enclosure for images
         if isInsideItem {
             if elementName == "media:content" || elementName == "media:thumbnail" {
-                if let url = attributes["url"] {
+                if let url = attributeDict["url"] {
                     currentImageURL = url
                 }
             } else if elementName == "enclosure" {
-                if let url = attributes["url"],
-                   attributes["type"]?.hasPrefix("image") == true {
+                if let url = attributeDict["url"],
+                   attributeDict["type"]?.hasPrefix("image") == true {
                     currentImageURL = url
                 }
             }
         }
     }
 
-    nonisolated func parser(_ parser: XMLParser, foundCharacters string: String) {
-        Task { @MainActor in
-            await handleFoundCharacters(string)
-        }
-    }
-
-    private func handleFoundCharacters(_ string: String) {
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, isInsideItem else { return }
 
@@ -136,18 +162,12 @@ extension RSSParser: XMLParserDelegate {
         }
     }
 
-    nonisolated func parser(
+    func parser(
         _ parser: XMLParser,
         didEndElement elementName: String,
         namespaceURI: String?,
         qualifiedName qName: String?
     ) {
-        Task { @MainActor in
-            await handleEndElement(elementName)
-        }
-    }
-
-    private func handleEndElement(_ elementName: String) {
         if elementName == "item" || elementName == "entry" {
             let item = RSSItem(
                 title: currentTitle.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -165,47 +185,6 @@ extension RSSParser: XMLParserDelegate {
 
             isInsideItem = false
         }
-    }
-
-    private func cleanHTML(_ html: String) -> String {
-        // Remove HTML tags
-        var clean = html.replacingOccurrences(
-            of: "<[^>]+>",
-            with: "",
-            options: .regularExpression
-        )
-        // Decode HTML entities
-        clean = clean.replacingOccurrences(of: "&amp;", with: "&")
-        clean = clean.replacingOccurrences(of: "&lt;", with: "<")
-        clean = clean.replacingOccurrences(of: "&gt;", with: ">")
-        clean = clean.replacingOccurrences(of: "&quot;", with: "\"")
-        clean = clean.replacingOccurrences(of: "&#39;", with: "'")
-        clean = clean.replacingOccurrences(of: "&nbsp;", with: " ")
-        return clean.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func extractImageFromContent() -> String? {
-        // Try to extract image URL from content or description
-        let patterns = [
-            "src=\"([^\"]+\\.(jpg|jpeg|png|gif|webp)[^\"]*)\"",
-            "src='([^']+\\.(jpg|jpeg|png|gif|webp)[^']*)'",
-        ]
-
-        let textToSearch = currentContent.isEmpty ? currentDescription : currentContent
-
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
-               let match = regex.firstMatch(
-                   in: textToSearch,
-                   options: [],
-                   range: NSRange(textToSearch.startIndex..., in: textToSearch)
-               ),
-               let range = Range(match.range(at: 1), in: textToSearch) {
-                return String(textToSearch[range])
-            }
-        }
-
-        return nil
     }
 }
 
