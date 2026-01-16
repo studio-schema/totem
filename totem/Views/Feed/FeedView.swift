@@ -52,6 +52,7 @@ struct FeedView: View {
                     // Latest Stories Header
                     if !remainingArticles.isEmpty {
                         SectionHeader(title: "Latest Stories")
+                            .padding(.horizontal, 16)
                             .padding(.bottom, 8)
                     }
 
@@ -113,8 +114,6 @@ struct SectionHeader: View {
                 .fontWeight(.semibold)
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
     }
 }
 
