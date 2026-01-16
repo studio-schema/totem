@@ -145,7 +145,7 @@ totem/
 - [x] Build ArticleDetailView with parallax
 - [x] Implement iOS 18 zoom transitions
 - [x] Create share functionality
-- [ ] Add WebView for full article reading
+- [x] Add in-app Safari for full article reading
 - [ ] Add reading progress tracking
 
 ### Phase 4: Features - IN PROGRESS
@@ -255,6 +255,12 @@ git push origin main
 ---
 
 ## Changelog
+
+### 2026-01-16 (Build 4)
+- ✅ BUILD SUCCEEDED
+- Added in-app Safari browser (SFSafariViewController)
+- "Read Full Article" button opens articles within the app
+- Reader mode enabled by default for cleaner reading experience
 
 ### 2026-01-16 (Build 3)
 - ✅ BUILD SUCCEEDED - RSS FEEDS WORKING

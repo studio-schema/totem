@@ -11,8 +11,8 @@ struct ArticleDetailView: View {
     let article: Article
     @State private var scrollOffset: CGFloat = 0
     @State private var isBookmarked: Bool
+    @State private var showSafari = false
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
 
     init(article: Article) {
         self.article = article
@@ -111,32 +111,30 @@ struct ArticleDetailView: View {
                                 .font(.body)
                                 .fontDesign(.serif)
                                 .lineSpacing(8)
-
-                            // Read more button
-                            Button {
-                                if let url = URL(string: article.articleURL) {
-                                    openURL(url)
-                                }
-                            } label: {
-                                HStack {
-                                    Text("Continue reading")
-                                    Image(systemName: "arrow.up.right")
-                                }
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    LinearGradient(
-                                        colors: article.category.gradient,
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                            .padding(.top, 16)
                         }
+
+                        // Read Full Article button - always show
+                        Button {
+                            showSafari = true
+                        } label: {
+                            HStack {
+                                Text("Read Full Article")
+                                Image(systemName: "safari")
+                            }
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                LinearGradient(
+                                    colors: article.category.gradient,
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .padding(.top, 16)
 
                         // Positivity score card
                         PositivityScoreCard(article: article)
@@ -180,6 +178,12 @@ struct ArticleDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .sheet(isPresented: $showSafari) {
+            if let url = URL(string: article.articleURL) {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
+        }
     }
 }
 
