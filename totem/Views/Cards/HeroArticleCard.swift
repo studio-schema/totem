@@ -41,6 +41,7 @@ struct HeroArticleCard: View {
                         placeholderGradient
                     }
                 }
+                .frame(maxWidth: .infinity)
                 .frame(height: 240)
                 .clipped()
 
@@ -73,6 +74,7 @@ struct HeroArticleCard: View {
                     .fontWeight(.bold)
                     .lineLimit(3)
                     .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let description = article.articleDescription {
                     Text(description)
@@ -107,8 +109,10 @@ struct HeroArticleCard: View {
                 }
                 .padding(.top, 4)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
         }
+        .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
