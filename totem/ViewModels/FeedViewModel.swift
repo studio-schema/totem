@@ -79,22 +79,21 @@ final class FeedViewModel {
 
     @MainActor
     func changeCategory(to category: ArticleCategory) async {
-        guard category != selectedCategory else { return }
-
+        // Update selected category (may already be set by binding)
         selectedCategory = category
 
-        // Re-filter displayed articles
-        if let context = modelContext {
-            let descriptor = FetchDescriptor<Article>(
-                sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]
-            )
+        // Re-filter displayed articles from persisted data
+        guard let context = modelContext else { return }
 
-            do {
-                let allArticles = try context.fetch(descriptor)
-                updateDisplayedArticles(from: allArticles)
-            } catch {
-                print("Failed to filter articles: \(error)")
-            }
+        let descriptor = FetchDescriptor<Article>(
+            sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]
+        )
+
+        do {
+            let allArticles = try context.fetch(descriptor)
+            updateDisplayedArticles(from: allArticles)
+        } catch {
+            print("Failed to filter articles: \(error)")
         }
     }
 
