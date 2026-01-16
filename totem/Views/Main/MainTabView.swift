@@ -12,37 +12,46 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var feedViewModel = FeedViewModel()
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            FeedView(viewModel: feedViewModel)
-                .tabItem {
-                    Label("Today", systemImage: "sun.max.fill")
-                }
-                .tag(0)
+        ZStack {
+            if hasCompletedOnboarding {
+                TabView(selection: $selectedTab) {
+                    FeedView(viewModel: feedViewModel)
+                        .tabItem {
+                            Label("Today", systemImage: "sun.max.fill")
+                        }
+                        .tag(0)
 
-            BookmarksView()
-                .tabItem {
-                    Label("Saved", systemImage: "bookmark.fill")
-                }
-                .tag(1)
+                    BookmarksView()
+                        .tabItem {
+                            Label("Saved", systemImage: "bookmark.fill")
+                        }
+                        .tag(1)
 
-            SearchView()
-                .tabItem {
-                    Label("Discover", systemImage: "magnifyingglass")
-                }
-                .tag(2)
+                    SearchView()
+                        .tabItem {
+                            Label("Discover", systemImage: "magnifyingglass")
+                        }
+                        .tag(2)
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    SettingsView()
+                        .tabItem {
+                            Label("Settings", systemImage: "gearshape.fill")
+                        }
+                        .tag(3)
                 }
-                .tag(3)
+                .tint(.primary)
+                .onAppear {
+                    feedViewModel.configure(with: modelContext)
+                }
+            } else {
+                OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+                    .transition(.opacity)
+            }
         }
-        .tint(.primary)
-        .onAppear {
-            feedViewModel.configure(with: modelContext)
-        }
+        .animation(.easeInOut(duration: 0.5), value: hasCompletedOnboarding)
     }
 }
 
