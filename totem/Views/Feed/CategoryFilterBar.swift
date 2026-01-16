@@ -13,7 +13,7 @@ struct CategoryFilterBar: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach(ArticleCategory.allCases) { category in
                     CategoryPill(
                         category: category,
@@ -28,7 +28,9 @@ struct CategoryFilterBar: View {
                 }
             }
             .padding(.horizontal, 16)
+            .padding(.trailing, 16) // Extra trailing space to scroll to last item
         }
+        .scrollIndicators(.hidden)
     }
 }
 

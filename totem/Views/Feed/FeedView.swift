@@ -14,42 +14,50 @@ struct FeedView: View {
     @Namespace private var heroNamespace
     @State private var selectedArticle: Article?
 
+    private var remainingArticles: [Article] {
+        guard viewModel.articles.count > 1 else { return [] }
+        return Array(viewModel.articles.dropFirst())
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    // Category Filter Bar
-                    Section {
-                        CategoryFilterBar(
-                            selectedCategory: $viewModel.selectedCategory,
-                            onCategoryChange: { category in
-                                Task {
-                                    await viewModel.changeCategory(to: category)
-                                }
+                VStack(spacing: 0) {
+                    // Category Filter Bar - pinned style
+                    CategoryFilterBar(
+                        selectedCategory: $viewModel.selectedCategory,
+                        onCategoryChange: { category in
+                            Task {
+                                await viewModel.changeCategory(to: category)
                             }
-                        )
-                        .padding(.vertical, 12)
-                    }
+                        }
+                    )
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
 
                     // Featured Hero Card
                     if let featured = viewModel.featuredArticle {
-                        Section {
-                            HeroArticleCard(article: featured)
-                                .matchedTransitionSource(
-                                    id: featured.id,
-                                    in: heroNamespace
-                                )
-                                .onTapGesture {
-                                    selectedArticle = featured
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 24)
-                        }
+                        HeroArticleCard(article: featured)
+                            .matchedTransitionSource(
+                                id: featured.id,
+                                in: heroNamespace
+                            )
+                            .onTapGesture {
+                                selectedArticle = featured
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 20)
+                    }
+
+                    // Latest Stories Header
+                    if !remainingArticles.isEmpty {
+                        SectionHeader(title: "Latest Stories")
+                            .padding(.bottom, 8)
                     }
 
                     // Article List
-                    Section {
-                        ForEach(Array(viewModel.articles.dropFirst())) { article in
+                    LazyVStack(spacing: 12) {
+                        ForEach(remainingArticles) { article in
                             StandardArticleCard(article: article)
                                 .matchedTransitionSource(
                                     id: article.id,
@@ -59,12 +67,6 @@ struct FeedView: View {
                                     selectedArticle = article
                                 }
                                 .padding(.horizontal, 16)
-                                .padding(.bottom, 12)
-                        }
-                    } header: {
-                        if !viewModel.articles.isEmpty {
-                            SectionHeader(title: "Latest Stories")
-                                .background(.ultraThinMaterial)
                         }
                     }
 
@@ -73,6 +75,10 @@ struct FeedView: View {
                         ProgressView()
                             .padding(40)
                     }
+
+                    // Bottom padding for tab bar
+                    Spacer()
+                        .frame(height: 20)
                 }
             }
             .refreshable {
@@ -85,8 +91,8 @@ struct FeedView: View {
                     .navigationTransition(.zoom(sourceID: article.id, in: heroNamespace))
             }
             .overlay {
-                if viewModel.articles.isEmpty && !viewModel.isLoading {
-                    EmptyFeedView()
+                if viewModel.articles.isEmpty && !viewModel.isLoading && viewModel.hasLoadedOnce {
+                    EmptyCategoryView(category: viewModel.selectedCategory)
                 }
             }
         }
@@ -131,6 +137,30 @@ struct EmptyFeedView: View {
 
             ProgressView()
                 .padding(.top, 8)
+        }
+        .padding(40)
+    }
+}
+
+// MARK: - Empty Category State
+struct EmptyCategoryView: View {
+    let category: ArticleCategory
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: category.icon)
+                .font(.system(size: 50))
+                .foregroundStyle(category.primaryColor)
+
+            Text("No \(category.displayName) Stories")
+                .font(.title3)
+                .fontWeight(.bold)
+
+            Text("We haven't found any \(category.displayName.lowercased()) articles yet.\nPull down to refresh or try another category.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
         }
         .padding(40)
     }
