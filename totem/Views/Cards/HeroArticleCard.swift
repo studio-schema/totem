@@ -16,30 +16,34 @@ struct HeroArticleCard: View {
             // Image with gradient overlay
             ZStack(alignment: .bottomLeading) {
                 // Article Image or Gradient Placeholder
-                Group {
-                    if let imageURL = article.imageURL,
-                       let url = URL(string: imageURL) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            case .failure:
-                                placeholderGradient
-                            case .empty:
-                                ZStack {
+                GeometryReader { geo in
+                    Group {
+                        if let imageURL = article.imageURL,
+                           let url = URL(string: imageURL) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: geo.size.width, height: 240)
+                                case .failure:
                                     placeholderGradient
-                                    ProgressView()
-                                        .tint(.white)
+                                case .empty:
+                                    ZStack {
+                                        placeholderGradient
+                                        ProgressView()
+                                            .tint(.white)
+                                    }
+                                @unknown default:
+                                    placeholderGradient
                                 }
-                            @unknown default:
-                                placeholderGradient
                             }
+                        } else {
+                            placeholderGradient
                         }
-                    } else {
-                        placeholderGradient
                     }
+                    .frame(width: geo.size.width, height: 240)
                 }
                 .frame(height: 240)
                 .clipped()
@@ -109,6 +113,7 @@ struct HeroArticleCard: View {
             }
             .padding(16)
         }
+        .clipped()
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
