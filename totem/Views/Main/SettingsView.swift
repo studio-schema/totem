@@ -6,10 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("refreshInterval") private var refreshInterval = 30
+    @Environment(\.modelContext) private var modelContext
+    @State private var showingClearAlert = false
+    @State private var isClearing = false
 
     var body: some View {
         NavigationStack {
@@ -44,6 +48,23 @@ struct SettingsView: View {
                         Text("1 hour").tag(60)
                         Text("Manual only").tag(0)
                     }
+                }
+
+                // Data Section
+                Section("Data") {
+                    Button(role: .destructive) {
+                        showingClearAlert = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Clear Cache & Refresh")
+                            if isClearing {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(isClearing)
                 }
 
                 // Sources Section
@@ -106,6 +127,35 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .alert("Clear Cache?", isPresented: $showingClearAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear & Refresh", role: .destructive) {
+                    clearCacheAndRefresh()
+                }
+            } message: {
+                Text("This will delete all cached articles and fetch fresh content with updated filters.")
+            }
+        }
+    }
+
+    private func clearCacheAndRefresh() {
+        isClearing = true
+
+        Task {
+            // Delete all articles
+            do {
+                let descriptor = FetchDescriptor<Article>()
+                let articles = try modelContext.fetch(descriptor)
+                for article in articles {
+                    modelContext.delete(article)
+                }
+                try modelContext.save()
+                print("Cleared \(articles.count) cached articles")
+            } catch {
+                print("Failed to clear cache: \(error)")
+            }
+
+            isClearing = false
         }
     }
 }
