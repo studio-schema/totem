@@ -256,6 +256,17 @@ git push origin main
 
 ## Changelog
 
+### 2026-01-16 (Build 6)
+- ✅ BUILD SUCCEEDED - ENHANCED FILTERING
+- Implemented 4-layer positivity filtering system:
+  - Layer 1: Expanded blocklist (~80 negative keywords)
+  - Layer 2: Stricter sentiment threshold (0.3 vs -0.5)
+  - Layer 3: Required positive signals (must contain inspiring words)
+  - Layer 4: Scoring system (65+ points required)
+- Word boundary matching for accurate keyword detection
+- Articles now show higher positivity scores (80%+)
+- Filters out politics, disasters, crime, health crises, negative emotions
+
 ### 2026-01-16 (Build 5)
 - ✅ BUILD SUCCEEDED - FULL FUNCTIONALITY
 - Expanded to 23 RSS sources covering all categories:
