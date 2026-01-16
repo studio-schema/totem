@@ -76,13 +76,54 @@ final class RSSParser: NSObject {
             with: "",
             options: .regularExpression
         )
+        // Named entities
         clean = clean.replacingOccurrences(of: "&amp;", with: "&")
         clean = clean.replacingOccurrences(of: "&lt;", with: "<")
         clean = clean.replacingOccurrences(of: "&gt;", with: ">")
         clean = clean.replacingOccurrences(of: "&quot;", with: "\"")
         clean = clean.replacingOccurrences(of: "&#39;", with: "'")
         clean = clean.replacingOccurrences(of: "&nbsp;", with: " ")
+        clean = clean.replacingOccurrences(of: "&apos;", with: "'")
+        clean = clean.replacingOccurrences(of: "&hellip;", with: "…")
+        clean = clean.replacingOccurrences(of: "&mdash;", with: "—")
+        clean = clean.replacingOccurrences(of: "&ndash;", with: "–")
+        clean = clean.replacingOccurrences(of: "&lsquo;", with: "'")
+        clean = clean.replacingOccurrences(of: "&rsquo;", with: "'")
+        clean = clean.replacingOccurrences(of: "&ldquo;", with: "\u{201C}")
+        clean = clean.replacingOccurrences(of: "&rdquo;", with: "\u{201D}")
+        // Common numeric entities
+        clean = clean.replacingOccurrences(of: "&#8230;", with: "…")
+        clean = clean.replacingOccurrences(of: "&#8217;", with: "'")
+        clean = clean.replacingOccurrences(of: "&#8216;", with: "'")
+        clean = clean.replacingOccurrences(of: "&#8220;", with: "\u{201C}")
+        clean = clean.replacingOccurrences(of: "&#8221;", with: "\u{201D}")
+        clean = clean.replacingOccurrences(of: "&#8211;", with: "–")
+        clean = clean.replacingOccurrences(of: "&#8212;", with: "—")
+        clean = clean.replacingOccurrences(of: "&#160;", with: " ")
+        // Decode any remaining numeric entities
+        clean = decodeNumericEntities(clean)
         return clean.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func decodeNumericEntities(_ string: String) -> String {
+        var result = string
+        let pattern = "&#(\\d+);"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return string }
+
+        let range = NSRange(string.startIndex..., in: string)
+        let matches = regex.matches(in: string, range: range).reversed()
+
+        for match in matches {
+            guard let codeRange = Range(match.range(at: 1), in: result),
+                  let code = Int(result[codeRange]),
+                  let scalar = Unicode.Scalar(code) else { continue }
+
+            let char = String(Character(scalar))
+            if let fullRange = Range(match.range, in: result) {
+                result.replaceSubrange(fullRange, with: char)
+            }
+        }
+        return result
     }
 
     private func extractImageFromContent() -> String? {
