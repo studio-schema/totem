@@ -11,7 +11,7 @@ import Foundation
 final class PositivityFilter {
     static let shared = PositivityFilter()
 
-    // MARK: - Layer 1: Blocked Keywords (~80 keywords across 7 categories)
+    // MARK: - Layer 1: Blocked Keywords
 
     private let blockedKeywords: Set<String> = [
         // Violence & Crime
@@ -53,55 +53,68 @@ final class PositivityFilter {
         "warning", "warns", "danger", "dangerous", "risk", "risks", "risky",
         "scary", "terrifying", "terrified", "horrific", "horrible", "awful",
         "terrible", "devastating", "shocking", "outrage", "outraged", "anger",
-        "angry", "furious", "disturbing", "disturbed"
+        "angry", "furious", "disturbing", "disturbed",
+
+        // Celebrity & Tabloid Content
+        "celebrity", "celebrities", "famous", "star", "starlet", "hollywood",
+        "kardashian", "kanye", "taylor swift", "beyonce", "drake", "bieber",
+        "reality tv", "reality show", "bachelor", "bachelorette", "housewives",
+        "red carpet", "paparazzi", "tabloid", "gossip", "rumor", "rumors",
+        "dating", "boyfriend", "girlfriend", "engaged", "engagement", "wedding",
+        "married", "marriage", "divorce", "divorced", "split", "breakup",
+        "cheating", "affair", "ex-wife", "ex-husband", "custody",
+        "feud", "drama", "claps back", "slams", "blasts", "shades",
+        "opens up about", "gets candid", "reveals", "confesses", "admits",
+        "roller coaster", "rocky", "struggles", "struggled", "fighting",
+
+        // Entertainment Fluff
+        "episode", "season", "finale", "premiere", "ratings", "renewed",
+        "canceled", "cancelled", "reboot", "spinoff", "sequel", "prequel",
+        "box office", "streaming", "netflix", "hulu", "disney+",
+        "instagram", "tiktok", "viral video", "went viral", "trending",
+        "selfie", "photoshoot", "makeover", "transformation",
+        "weight loss", "diet", "plastic surgery", "cosmetic"
     ]
 
-    // MARK: - Layer 3: Required Positive Signals
+    // MARK: - Layer 3: Required Positive Signals (substantive positive news)
 
     private let positiveSignals: Set<String> = [
-        // Achievement & Success
-        "success", "successful", "succeeded", "achievement", "achieved",
-        "breakthrough", "milestone", "record-breaking", "won", "wins",
-        "winning", "victory", "victorious", "triumph", "triumphed",
-        "accomplishment", "accomplished", "award", "awarded",
+        // Scientific & Medical Progress
+        "breakthrough", "discovery", "discovered", "researchers", "scientists",
+        "study finds", "cure", "treatment", "vaccine", "clinical trial",
+        "innovation", "innovative", "technology", "renewable", "sustainable",
 
-        // Kindness & Community
-        "kindness", "kind", "generous", "generosity", "donate", "donated",
-        "donation", "volunteer", "volunteered", "volunteering", "charity",
-        "charitable", "help", "helped", "helping", "support", "supported",
-        "supporting", "community", "together", "unity", "united",
+        // Community & Social Good
+        "volunteer", "volunteered", "volunteering", "donate", "donated",
+        "donation", "charity", "charitable", "nonprofit", "fundraiser",
+        "community", "neighbors", "local hero", "rescue", "rescued",
+        "saved", "saving lives", "food bank", "shelter",
 
-        // Hope & Inspiration
-        "hope", "hopeful", "hoping", "inspiring", "inspired", "inspiration",
-        "inspirational", "uplifting", "heartwarming", "touching", "moved",
-        "moving", "beautiful", "wonderful", "amazing", "remarkable",
-        "incredible", "extraordinary", "miracle", "miraculous",
+        // Environmental Progress
+        "conservation", "protected", "restored", "reforestation", "clean energy",
+        "solar", "wind power", "electric", "emissions", "recycling",
+        "endangered species", "wildlife", "habitat", "ocean cleanup",
 
-        // Progress & Innovation
-        "innovation", "innovative", "innovator", "discovery", "discovered",
-        "discovering", "solution", "solved", "solving", "improved",
-        "improvement", "improving", "progress", "progressing", "advance",
-        "advancement", "advancing", "transformed", "transforming",
-        "revolutionized", "pioneering", "pioneer",
+        // Education & Opportunity
+        "scholarship", "graduated", "education", "students", "school",
+        "literacy", "mentorship", "training", "skills", "opportunity",
 
-        // Joy & Celebration
-        "joy", "joyful", "joyous", "happy", "happiness", "happily",
-        "celebrate", "celebrated", "celebrating", "celebration", "delight",
-        "delighted", "delightful", "thrilled", "thrilling", "excited",
-        "exciting", "excitement", "cheerful", "cheer",
+        // Human Achievement
+        "milestone", "record-breaking", "first ever", "youngest", "oldest",
+        "overcame", "perseverance", "dedication", "determination",
 
-        // Wellness & Growth
-        "healing", "healed", "healer", "recovery", "recovered", "recovering",
-        "wellness", "healthy", "healthier", "thriving", "thrive", "flourishing",
-        "flourish", "growing", "growth", "bloom", "blooming", "prosper",
-        "prospering", "prosperity"
+        // Genuine Kindness
+        "kindness", "generous", "generosity", "compassion", "compassionate",
+        "selfless", "heartwarming", "uplifting", "inspiring", "hero",
+        "helped", "helping hand", "paid it forward", "random act"
     ]
 
-    // MARK: - Strong Signals (bonus points)
+    // MARK: - Strong Signals (bonus points for substantive content)
 
     private let strongSignals: Set<String> = [
-        "breakthrough", "inspiring", "heartwarming", "remarkable", "triumph",
-        "miracle", "extraordinary", "transformed", "revolutionized", "pioneering"
+        "breakthrough", "scientists", "researchers", "discovery", "cure",
+        "volunteer", "donated", "rescued", "conservation", "renewable",
+        "scholarship", "community", "hero", "milestone", "first ever"
     ]
 
     private init() {}
