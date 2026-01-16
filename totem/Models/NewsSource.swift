@@ -76,24 +76,24 @@ extension NewsSource {
             defaultCategory: .goodNews
         ),
 
-        // MARK: - Inspiring Stories
+        // MARK: - More Good News Sources
         NewsSource(
             name: "Upworthy",
             feedURL: "https://www.upworthy.com/rss.xml",
             icon: "arrow.up.heart.fill",
-            defaultCategory: .inspiringStories
+            defaultCategory: .goodNews
         ),
         NewsSource(
             name: "Good Good Good",
             feedURL: "https://www.goodgoodgood.co/articles/rss.xml",
             icon: "hand.thumbsup.fill",
-            defaultCategory: .inspiringStories
+            defaultCategory: .goodNews
         ),
         NewsSource(
             name: "Inspire More",
             feedURL: "https://www.inspiremore.com/feed/",
             icon: "star.fill",
-            defaultCategory: .inspiringStories
+            defaultCategory: .goodNews
         ),
 
         // MARK: - Science & Innovation

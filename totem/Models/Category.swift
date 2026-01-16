@@ -11,7 +11,6 @@ import SwiftUI
 enum ArticleCategory: String, Codable, CaseIterable, Identifiable {
     case forYou = "for_you"
     case goodNews = "good_news"
-    case inspiringStories = "inspiring_stories"
     case actsOfKindness = "acts_of_kindness"
     case scienceInnovation = "science_innovation"
     case environment = "environment"
@@ -24,7 +23,6 @@ enum ArticleCategory: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .forYou: return "For You"
         case .goodNews: return "Good News"
-        case .inspiringStories: return "Inspiring Stories"
         case .actsOfKindness: return "Acts of Kindness"
         case .scienceInnovation: return "Science & Innovation"
         case .environment: return "Environment"
@@ -37,7 +35,6 @@ enum ArticleCategory: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .forYou: return "sparkles"
         case .goodNews: return "sun.max.fill"
-        case .inspiringStories: return "star.fill"
         case .actsOfKindness: return "heart.fill"
         case .scienceInnovation: return "atom"
         case .environment: return "leaf.fill"
@@ -50,7 +47,6 @@ enum ArticleCategory: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .forYou: return [Color.indigo, Color.purple]
         case .goodNews: return [Color.yellow, Color.orange]
-        case .inspiringStories: return [Color.purple, Color.pink]
         case .actsOfKindness: return [Color.pink, Color.red]
         case .scienceInnovation: return [Color.blue, Color.cyan]
         case .environment: return [Color.green, Color.teal]
@@ -68,9 +64,7 @@ enum ArticleCategory: String, Codable, CaseIterable, Identifiable {
         case .forYou:
             return []
         case .goodNews:
-            return ["positive", "uplifting", "success", "breakthrough", "achievement", "celebrate", "joy", "happy"]
-        case .inspiringStories:
-            return ["inspiration", "hero", "overcome", "triumph", "courage", "brave", "remarkable", "extraordinary"]
+            return ["positive", "uplifting", "success", "breakthrough", "achievement", "celebrate", "joy", "happy", "inspiration", "hero", "overcome", "triumph", "courage", "brave", "remarkable", "extraordinary"]
         case .actsOfKindness:
             return ["kindness", "charity", "volunteer", "donate", "help", "community", "generous", "compassion"]
         case .scienceInnovation:
